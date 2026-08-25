@@ -1,0 +1,12 @@
+.DS_Store
+.git
+.gitignore
+.venv
+node_modules
+traffic-output
+*.log
+mockserver
+openapi.yaml
+openapi.flowplane-demo.yaml
+README.md
+test

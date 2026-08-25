@@ -1,0 +1,301 @@
+openapi: 3.0.3
+info:
+  title: MockBank Flowplane Demo API
+  version: 1.0.0
+  description: >-
+    A deliberately small API for a governed-agent demonstration. All people,
+    accounts, cards, transactions, and notifications are synthetic. This is a
+    stateful sandbox, not a production banking system.
+servers:
+  - url: http://localhost:10097
+tags:
+  - name: Investigation
+  - name: Response
+paths:
+  /v2/api/customers/{id}:
+    get:
+      tags: [Investigation]
+      operationId: getCustomer
+      summary: Get the synthetic customer under investigation
+      description: Resolve the synthetic customer record before inspecting owned accounts and cards.
+      parameters:
+        - $ref: '#/components/parameters/ResourceId'
+      responses:
+        '200':
+          description: Customer found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Customer'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /v2/api/accounts:
+    get:
+      tags: [Investigation]
+      operationId: listCustomerAccounts
+      summary: List accounts owned by a synthetic customer
+      description: Use the customer identifier to find candidate accounts involved in an alert.
+      parameters:
+        - $ref: '#/components/parameters/CustomerId'
+      responses:
+        '200':
+          description: Accounts owned by the customer.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Account'
+        '400':
+          $ref: '#/components/responses/InvalidFilter'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /v2/api/transactions:
+    get:
+      tags: [Investigation]
+      operationId: listAccountTransactions
+      summary: List transactions for a synthetic account
+      description: Inspect account activity and identify the transaction marked as high risk.
+      parameters:
+        - $ref: '#/components/parameters/AccountId'
+      responses:
+        '200':
+          description: Transactions recorded against the account.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Transaction'
+        '400':
+          $ref: '#/components/responses/InvalidFilter'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /v2/api/cards:
+    get:
+      tags: [Investigation]
+      operationId: listCustomerCards
+      summary: List cards owned by a synthetic customer
+      description: Identify the card associated with the account and suspicious transaction.
+      parameters:
+        - $ref: '#/components/parameters/CustomerId'
+      responses:
+        '200':
+          description: Cards owned by the customer.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Card'
+        '400':
+          $ref: '#/components/responses/InvalidFilter'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /v2/api/cards/{id}/block:
+    post:
+      tags: [Response]
+      operationId: blockCard
+      summary: Block a synthetic card
+      description: >-
+        Apply an idempotent block after the investigation confirms suspected fraud.
+        Repeating the request returns the original blocked state and timestamp.
+      parameters:
+        - $ref: '#/components/parameters/ResourceId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BlockCardRequest'
+      responses:
+        '200':
+          description: Current blocked card state.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Card'
+        '400':
+          $ref: '#/components/responses/InvalidRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /v2/api/notifications:
+    get:
+      tags: [Response]
+      operationId: listCustomerNotifications
+      summary: Read back notifications for a synthetic customer
+      description: Confirm that the customer notification created during the response was persisted.
+      parameters:
+        - $ref: '#/components/parameters/CustomerId'
+      responses:
+        '200':
+          description: Notifications for the customer.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Notification'
+        '400':
+          $ref: '#/components/responses/InvalidFilter'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    post:
+      tags: [Response]
+      operationId: createCustomerNotification
+      summary: Create a synthetic customer security notification
+      description: Persist a clear security message after blocking the affected synthetic card.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateNotificationRequest'
+      responses:
+        '201':
+          description: Notification created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Notification'
+        '400':
+          $ref: '#/components/responses/InvalidRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+components:
+  parameters:
+    ResourceId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: integer
+        minimum: 1
+    CustomerId:
+      name: customerId
+      in: query
+      required: true
+      description: Synthetic customer identifier.
+      schema:
+        type: integer
+        minimum: 1
+    AccountId:
+      name: accountId
+      in: query
+      required: true
+      description: Synthetic account identifier.
+      schema:
+        type: integer
+        minimum: 1
+  responses:
+    InvalidFilter:
+      description: A required ownership filter is missing or invalid.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    InvalidRequest:
+      description: The request body or reason is invalid.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    NotFound:
+      description: The requested synthetic resource or related owner was not found.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+  schemas:
+    Customer:
+      type: object
+      required: [id, firstName, lastName, email]
+      properties:
+        id: { type: integer }
+        firstName: { type: string }
+        lastName: { type: string }
+        email: { type: string, format: email }
+        status: { type: string }
+    Account:
+      type: object
+      required: [id, customerId, accountNumber, accountType, balance, currency, status]
+      properties:
+        id: { type: integer }
+        customerId: { type: integer }
+        accountNumber: { type: string, description: Synthetic account number. }
+        accountType: { type: string }
+        accountName: { type: string }
+        balance: { type: number, format: double }
+        availableBalance: { type: number, format: double }
+        currency: { type: string }
+        status: { type: string }
+    Transaction:
+      type: object
+      required: [id, accountId, type, amount, currency, description, date, status, reference]
+      properties:
+        id: { type: integer }
+        accountId: { type: integer }
+        type: { type: string, enum: [credit, debit] }
+        category: { type: string }
+        amount: { type: number, format: double }
+        currency: { type: string }
+        description: { type: string }
+        merchantName: { type: string, nullable: true }
+        date: { type: string, format: date-time }
+        status: { type: string }
+        reference: { type: string }
+        riskLevel: { type: string, enum: [low, medium, high] }
+        synthetic: { type: boolean }
+    Card:
+      type: object
+      required: [id, customerId, cardNumber, cardType, cardBrand, status]
+      properties:
+        id: { type: integer }
+        customerId: { type: integer }
+        accountId: { type: integer, nullable: true }
+        cardNumber: { type: string, description: Masked synthetic card number. }
+        cardType: { type: string }
+        cardBrand: { type: string }
+        cardName: { type: string }
+        status: { type: string, enum: [active, blocked] }
+        blockedAt: { type: string, format: date-time }
+        blockedReason:
+          type: string
+          enum: [suspected_fraud, lost, stolen]
+    BlockCardRequest:
+      type: object
+      additionalProperties: false
+      required: [reason]
+      properties:
+        reason:
+          type: string
+          enum: [suspected_fraud, lost, stolen]
+    CreateNotificationRequest:
+      type: object
+      additionalProperties: false
+      required: [customerId, type, title, message]
+      properties:
+        customerId: { type: integer, minimum: 1 }
+        type: { type: string, enum: [security] }
+        title: { type: string, minLength: 1, maxLength: 120 }
+        message: { type: string, minLength: 1, maxLength: 500 }
+        priority: { type: string, enum: [normal, high], default: high }
+    Notification:
+      type: object
+      additionalProperties: false
+      required: [id, customerId, type, title, message, priority, date, read]
+      properties:
+        id: { type: integer }
+        customerId: { type: integer, minimum: 1 }
+        type: { type: string }
+        title: { type: string, minLength: 1, maxLength: 120 }
+        message: { type: string, minLength: 1, maxLength: 500 }
+        priority: { type: string, enum: [normal, high] }
+        date: { type: string, format: date-time }
+        read: { type: boolean }
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error: { type: string }
+        message: { type: string }

@@ -1,0 +1,31 @@
+{
+  "name": "mockbank-banking-sandbox",
+  "version": "1.0.0",
+  "description": "Stateful synthetic banking sandbox for the Flowplane demo",
+  "main": "server.js",
+  "scripts": {
+    "reset": "node scripts/reset.js",
+    "start": "node server.js",
+    "test": "npm run test:node && npm run test:traffic",
+    "test:node": "node --test test/*.test.js",
+    "test:traffic": "python3 -m unittest discover -s test -p 'test_*.py'"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rajeevramani/mock-backend.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/rajeevramani/mock-backend/issues"
+  },
+  "homepage": "https://github.com/rajeevramani/mock-backend#readme",
+  "dependencies": {
+    "json-server": "0.17.4"
+  },
+  "devDependencies": {
+    "@apidevtools/swagger-parser": "^10.1.0"
+  }
+}

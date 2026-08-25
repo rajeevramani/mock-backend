@@ -1,0 +1,34 @@
+services:
+  sandbox:
+    build:
+      context: .
+    image: mockbank-banking-sandbox:local
+    ports:
+      - "127.0.0.1:${MOCKBANK_PORT:-10097}:10097"
+    environment:
+      HOST: 0.0.0.0
+      PORT: 10097
+      DB_FILE: /app/data/db.json
+      SEED_FILE: /app/fixtures/seed.json
+    volumes:
+      - mockbank-data:/app/data
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:10097/readyz').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 5s
+
+  fault-injection:
+    profiles: ["fault-injection"]
+    image: mockserver/mockserver:5.15.0
+    ports:
+      - "127.0.0.1:${MOCKBANK_FAULT_PORT:-10098}:1080"
+    environment:
+      MOCKSERVER_INITIALIZATION_JSON_PATH: /config/expectations.json
+      MOCKSERVER_WATCH_INITIALIZATION_JSON: "true"
+    volumes:
+      - ./mockserver:/config:ro
+
+volumes:
+  mockbank-data:

@@ -1,0 +1,12 @@
+services:
+  envoy:
+    ports:
+      - "127.0.0.1:${FLOWPLANE_DEMO_GATEWAY_PORT:-10001}:10001"
+    networks:
+      default: {}
+      flowplane-demo: {}
+
+networks:
+  flowplane-demo:
+    external: true
+    name: flowplane-demo

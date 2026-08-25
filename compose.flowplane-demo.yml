@@ -1,0 +1,11 @@
+services:
+  sandbox:
+    networks:
+      default: {}
+      flowplane-demo:
+        aliases: [mockbank]
+
+networks:
+  flowplane-demo:
+    external: true
+    name: flowplane-demo
